@@ -57,9 +57,10 @@ if __name__ == "__main__":
     #parser.add_argument(
     #print(parser.parse_args())
     from sys import stdin
-    package_names = []
+    package_names = set()
     for name in stdin:
-        package_names.append(name.strip(" \n").split(" ")[0])
+        package_names.add(name.strip(" \n").split(" ")[0])
+    package_names = list(sorted(package_names))
 
     # List of mirrors to use
     #mirrorlist = get_mirrorlist_online("https://www.archlinux.org/mirrors/status/json/")
