@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
-from os.path import isfile
+from os.path import isfile, isdir
 
 from fastpac.mirror import get_mirrorlist_online, get_mirrorlist_offline
 from fastpac.search import find_package, repos_provider
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     #parser.add_argument("-w", "--workers", default=4, help="Number of parallel downloads")
     #parser.add_argument(
     #print(parser.parse_args())
-    from sys import stdin
+    from sys import stdin, exit
     package_names = set()
     for name in stdin:
         package_names.add(name.strip(" \n").split(" ")[0])
@@ -86,6 +86,10 @@ if __name__ == "__main__":
 
     # Destination of downloads
     dest = "dest/"
+
+    if not isdir(dest):
+        print(f"'{dest}' does not exist")
+        exit()
 
     with ThreadPoolExecutor(max_workers=4) as pool:
         for package_name in package_names:
