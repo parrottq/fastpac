@@ -7,10 +7,10 @@ def get(url):
 def is_mirror_https(mirror):
     # Explicit param
     if "protocol" in mirror:
-        return True if mirror["protocol"] == "https" else False
+        return mirror["protocol"] == "https"
 
     # Based of url
-    return True if mirror["url"].startswith("https") else False
+    return mirror["url"].startswith("https")
 
 
 def get_mirrorlist_online(url, https=True, sort=None):
