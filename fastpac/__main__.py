@@ -1,5 +1,6 @@
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+import logging
 from threading import Lock
 from typing import Any, Dict, List, Set
 from pathlib import Path
@@ -13,22 +14,26 @@ from fastpac.download import assemble_package_url, download_file_to_path
 from fastpac.picker import LeastUsedPicker
 
 
+log = logging.getLogger('fastpac.__main__')
+
+
 def download_package(name, dest, databases, databases_lock, mirrorpicker, mirrorpicker_lock):
 
     # find_package returns the filename for the current version and
     # its repo of residence. Both are needed to make the download url
     with databases_lock:
+        log.info('Downloading repos...')
         package_info = find_package(name, databases, limit=8) # 8 because 4 different repo type * 2
 
     # find_package will return None if no package is in the database
     if not package_info:
-        print(f'{name!r} could not be found')
+        log.warning('%r could not be found', name)
         return
 
     # If it is already present we skip this package
     filename = package_info["filename"]
-    if isfile(f"{dest}{filename}"):
-        print(f"'{filename}' already exists")
+    if (dest / filename).is_file():
+        log.debug('%r already exists', filename)
         return
 
     # Try downloading a package from a mirror until one works
@@ -41,15 +46,15 @@ def download_package(name, dest, databases, databases_lock, mirrorpicker, mirror
         package_mirror = assemble_package_url(package_info, mirror)
 
         # Download
-        print(f"Downloading '{filename}' from {package_mirror}")
+        log.info('Downloading %r from %s', filename, package_mirror)
         try:
             download_file_to_path(package_mirror, f"{dest}{filename}")
-        except Exception:
-            print(f"Download '{package_mirror}' failed")
+        except Exception as e:
+            log.exception(e)
             # Go to next mirror
             continue
 
-        print(f"Finished downloading '{package_mirror}'")
+        log.info('Finished downloading %s', package_mirror)
         # Next package
         break
 
@@ -96,12 +101,16 @@ class PathFileType:
 
 def parse_args(args: List[str]) -> argparse.Namespace:
     p = argparse.ArgumentParser()
-    p.add_argument('--config-file', type=PathFileType(), help='Path to config file')
+    p.add_argument('--config-file', type=PathFileType(),
+                   default='/etc/fastpac.conf.py', help='Path to config file')
+    p.add_argument('--log-level', default=None, help='Log level')
     return p.parse_args()
 
 
 def main(args: argparse.Namespace):
     config = load_config(args.config_file)
+    if args.log_level:
+        logging.getLogger('fastpac').setLevel(args.log_level.upper())
     package_names = make_package_list(Path(config['package_list_dir']))
     package_names = sorted(package_names)
 
