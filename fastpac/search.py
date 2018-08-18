@@ -2,11 +2,15 @@
 All functionality relating to searching package databases
 """
 from io import BytesIO
-from tarfile import open as TarOpen
+import logging
+from tarfile import open as tar_open
+from typing import Iterable, Optional, NamedTuple
 
 from requests import get
 
 from fastpac.database import Repo
+
+log = logging.getLogger(__name__)
 
 def gen_repos(mirrors, repos):
     """
@@ -42,9 +46,15 @@ def download_tar(url):
     # Unit testing and future centralized downloader
     # TODO: Centralized downloading
     try:
-        return TarOpen(fileobj=BytesIO(get(url).content))
-    except Exception: # TODO: Less broad exception
-        pass
+        return tar_open(fileobj=BytesIO(get(url).content))
+    except (tarfile.TarError, requests.RequestException) as e:
+        log.info('Got error while downloading %r', exc_info=e)
+
+
+class RepoMeta(NamedTuple):
+    name: str
+    mirror: str
+    db: Repo
 
 def repos_provider(mirrorlist, repo_names):
     """
@@ -57,6 +67,7 @@ def repos_provider(mirrorlist, repo_names):
         for repo_db_url in gen_dbs(repo_name, repo_base_url):
 
             # Download the tar package database then check if anything us there
+            log.debug('Downloading repo from %s', repo_db_url)
             repo_tar = download_tar(repo_db_url)
             if repo_tar:
 
@@ -65,7 +76,7 @@ def repos_provider(mirrorlist, repo_names):
 
                 # Metadata is stored outside of Repo class
                 # TODO: Store the metadata inside the class?
-                repo = {"name": repo_name, "mirror": mirror_name, "db": new_repo}
+                repo = RepoMeta(name=repo_name, mirror=mirror_name, db=new_repo)
 
                 # Add to cache for future use
                 yield repo
@@ -73,7 +84,16 @@ def repos_provider(mirrorlist, repo_names):
                 # No point downloading the same repo under a different name
                 break
 
-def find_package(name, repos, limit=-1):
+
+class PackageInfo(NamedTuple):
+    mirror: str
+    repo: str
+    name: str
+    filename: str
+    size: int
+
+
+def find_package(name: str, repos: Iterable[RepoMeta], limit: int = -1) -> Optional[PackageInfo]:
     """
     Find a package filename and repo
 
@@ -81,26 +101,19 @@ def find_package(name, repos, limit=-1):
         name: package name
         repos: a list of repo data (or a generator that is indexable. See hybrid.HybridGenerator)
         limit: limit the number of repos to search
-
-    Return:
-        var["mirror"]: The mirror this databases was downloaded from
-        var["repo"]: Name of the repo eg. "core"
-        var["name"]: Package name
-        var["filename"]: Current filename found in databases
-        var["size"]: Compressed size of the package
     """ #TODO: Better return type
     for repo in repos:
         if limit == 0:
             break
 
-        if name in repo["db"]:
-            info = {
-                "mirror": repo["mirror"],
-                "repo": repo["name"],
-                "name": name,
-                "filename": repo["db"][name]["filename"],
-                "size": repo["db"][name]["csize"]
-                }
+        if name in repo.db:
+            info = PackageInfo(
+                mirror=repo.mirror,
+                repo=repo.name,
+                name=name,
+                filename=repo.db[name]["filename"],
+                size=repo.db[name]["csize"]
+            )
             return info
         limit -= 1
     return None

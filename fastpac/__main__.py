@@ -1,15 +1,15 @@
 import argparse
-from concurrent.futures import ThreadPoolExecutor
 import logging
 from threading import Lock
 from typing import Any, Dict, List, Set
 from pathlib import Path
 import runpy
 import sys
+import traceback
 
 from fastpac.mirror import get_mirrorlist_online, get_mirrorlist_offline
 from fastpac.search import find_package, repos_provider
-from fastpac.util import HybridGenerator
+from fastpac.util import HybridGenerator, ThreadPoolExecutorStackTraced
 from fastpac.download import assemble_package_url, download_file_to_path
 from fastpac.picker import LeastUsedPicker
 
@@ -18,11 +18,9 @@ log = logging.getLogger('fastpac.__main__')
 
 
 def download_package(name, dest, databases, databases_lock, mirrorpicker, mirrorpicker_lock):
-
     # find_package returns the filename for the current version and
     # its repo of residence. Both are needed to make the download url
     with databases_lock:
-        log.info('Downloading repos...')
         package_info = find_package(name, databases, limit=8) # 8 because 4 different repo type * 2
 
     # find_package will return None if no package is in the database
@@ -31,7 +29,7 @@ def download_package(name, dest, databases, databases_lock, mirrorpicker, mirror
         return
 
     # If it is already present we skip this package
-    filename = package_info["filename"]
+    filename = package_info.filename
     if (dest / filename).is_file():
         log.debug('%r already exists', filename)
         return
@@ -40,7 +38,7 @@ def download_package(name, dest, databases, databases_lock, mirrorpicker, mirror
     while True:
         # Picking a mirror to use
         with mirrorpicker_lock:
-            mirror = mirrorpicker.next(size=int(package_info["size"]))
+            mirror = mirrorpicker.next(size=int(package_info.size))
 
         # Combine the mirror url with info from databases to make a download url
         package_mirror = assemble_package_url(package_info, mirror)
@@ -48,11 +46,10 @@ def download_package(name, dest, databases, databases_lock, mirrorpicker, mirror
         # Download
         log.info('Downloading %r from %s', filename, package_mirror)
         try:
-            download_file_to_path(package_mirror, f"{dest}{filename}")
+            download_file_to_path(package_mirror, dest / filename)
         except Exception as e:
             log.exception(e)
             # Go to next mirror
-            continue
 
         log.info('Finished downloading %s', package_mirror)
         # Next package
@@ -122,9 +119,12 @@ def main(args: argparse.Namespace):
     if not dest.is_dir():
         raise ValueError(f'download_dir {dest} is not a directory')
 
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutorStackTraced(max_workers=config['workers']) as pool:
+        futures = []
         for package_name in package_names:
-            pool.submit(download_package, package_name, dest, config['databases'], databases_lock, config['mirrorpicker'], mirrorpicker_lock)
+            futures.append(pool.submit(download_package, package_name, dest, config['databases'], databases_lock, config['mirrorpicker'], mirrorpicker_lock))
+        for future in futures:
+            future.result()
 
 
 if __name__ == "__main__":

@@ -23,3 +23,5 @@ package_list_dir = '/var/cache/fastpac/packagelists'
 
 # Destination of downloads
 download_dir = '/var/cache/fastpac/pkg'
+
+workers = 4
