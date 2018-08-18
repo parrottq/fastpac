@@ -1,6 +1,10 @@
+import argparse
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
-from os.path import isfile, isdir
+from typing import Any, Dict, List, Set
+from pathlib import Path
+import runpy
+import sys
 
 from fastpac.mirror import get_mirrorlist_online, get_mirrorlist_offline
 from fastpac.search import find_package, repos_provider
@@ -18,7 +22,7 @@ def download_package(name, dest, databases, databases_lock, mirrorpicker, mirror
 
     # find_package will return None if no package is in the database
     if not package_info:
-        print(f"'{name}' could not be found")
+        print(f'{name!r} could not be found')
         return
 
     # If it is already present we skip this package
@@ -45,52 +49,74 @@ def download_package(name, dest, databases, databases_lock, mirrorpicker, mirror
             # Go to next mirror
             continue
 
-        print(f"Finishe downloading '{package_mirror}'")
+        print(f"Finished downloading '{package_mirror}'")
         # Next package
         break
 
 
-if __name__ == "__main__":
-    #from argparse import ArgumentParser
-    #parser = ArgumentParser()
-    #parser.add_argument("-w", "--workers", default=4, help="Number of parallel downloads")
-    #parser.add_argument(
-    #print(parser.parse_args())
-    from sys import stdin, exit
-    package_names = set()
-    for name in stdin:
-        package_names.add(name.strip(" \n").split(" ")[0])
-    package_names = list(sorted(package_names))
+def load_config(path: Path) -> Dict[str, Any]:
+    """
+    Load a runpy based config from a Path
 
-    # List of mirrors to use
-    #mirrorlist = get_mirrorlist_online("https://www.archlinux.org/mirrors/status/json/")
-    # Default location looks at mirrors in /etc/pacman.d/mirrorlist
-    offline_mirrors = get_mirrorlist_offline()
+    Parameters:
+    path -- Path object to load the config from
+    """
+    init_globals = {k: v for (k, v) in globals().items()
+                    if k.endswith('Picker') or k.endswith('Generator')
+                    or k.startswith('get_mirrorlist')
+                    or k.endswith('provider')}
+    return runpy.run_path(path, init_globals=init_globals)
 
-    # This contains repos and their package databases.
-    #
-    # repos_provider is a generator that will fetch databases continuously. HybridGenerator is
-    # a class that acts like self expanding list based off the results of a generator. The result
-    # is a list of databases that expands when more are needed. databases is a list of dicts containing
-    # 3 things, "name": the name of the repo eg. "core", "mirror": the url to the mirror it was fetched
-    # from (optional right now), and "db": a databases.Repo object. It can be a generator as it is here
-    databases = HybridGenerator(repos_provider(offline_mirrors, ["core", "extra", "community", "multilib"]))
+
+def make_package_list(path: Path) -> Set[str]:
+    """
+    Makes the package list from a directory with newline delimited
+    files.
+
+    Parameters:
+    path -- Path object to directory with package list files
+    """
+    packages = set()
+    for child in path.iterdir():
+        with child.open('r') as h:
+            packages.update(s.partition(' ')[0] for s in h.readlines())
+    return packages
+
+
+class PathFileType:
+    def __init__(self):
+        pass
+
+    def __call__(self, string):
+        path = Path(string)
+        if not path.is_file():
+            raise argparse.ArgumentTypeError(f'{string} is not a file')
+        return path
+
+
+def parse_args(args: List[str]) -> argparse.Namespace:
+    p = argparse.ArgumentParser()
+    p.add_argument('--config-file', type=PathFileType(), help='Path to config file')
+    return p.parse_args()
+
+
+def main(args: argparse.Namespace):
+    config = load_config(args.config_file)
+    package_names = make_package_list(Path(config['package_list_dir']))
+    package_names = sorted(package_names)
+
     databases_lock = Lock()
-
-    # What mirror should the package be downloaded from? There are a variety of preimplement ways in
-    # fastpac.mirrorlist. Some implementations will run out of mirrorrs to select from if not enough
-    # are present. This one will chose the mirror that has been used the least, taking into account
-    # package size. CapPicker will assign a virtual cap to each mirror.
-    mirrorpicker = LeastUsedPicker(offline_mirrors)
     mirrorpicker_lock = Lock()
 
-    # Destination of downloads
-    dest = "dest/"
+    dest = Path(config['download_dir'])
 
-    if not isdir(dest):
-        print(f"'{dest}' does not exist")
-        exit()
+    if not dest.is_dir():
+        raise ValueError(f'download_dir {dest} is not a directory')
 
     with ThreadPoolExecutor(max_workers=4) as pool:
         for package_name in package_names:
-            pool.submit(download_package, package_name, dest, databases, databases_lock, mirrorpicker, mirrorpicker_lock)
+            pool.submit(download_package, package_name, dest, config['databases'], databases_lock, config['mirrorpicker'], mirrorpicker_lock)
+
+
+if __name__ == "__main__":
+    main(parse_args(sys.argv[1:]))
