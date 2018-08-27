@@ -15,6 +15,6 @@ Create requisite directories and set up config file:
 
 ```bash
 # su fastpac
-$ pacman -Q > "/var/cache/fastpac/$(hostname)"
+$ pacman -Q > "/var/cache/fastpac/packagelists/$(hostname)"
 $ fastpac
 ```
