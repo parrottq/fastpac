@@ -44,19 +44,6 @@ def test_search_find_package():
     assert search.find_package("package_does_not_exist", data) == None
 
 
-def test_search_gen_repos():
-    mirrors = ["https://a.com/", "https://b.com"]
-    repos = ["a", "b", "c"]
-    gen = search.gen_repos(mirrors, repos)
-
-    assert next(gen) == ["https://a.com/a/os/x86_64/", "a", "https://a.com"]
-    assert next(gen) == ["https://a.com/b/os/x86_64/", "b", "https://a.com"]
-    assert next(gen) == ["https://a.com/c/os/x86_64/", "c", "https://a.com"]
-    assert next(gen) == ["https://b.com/a/os/x86_64/", "a", "https://b.com"]
-    assert next(gen) == ["https://b.com/b/os/x86_64/", "b", "https://b.com"]
-    assert next(gen) == ["https://b.com/c/os/x86_64/", "c", "https://b.com"]
-
-
 def test_search_gen_dbs():
     gen = search.gen_dbs("core", "https://a.com/")
 

@@ -4,8 +4,6 @@ from threading import Lock
 from typing import Any, Dict, List, Set
 from pathlib import Path
 import runpy
-import sys
-import traceback
 
 from fastpac.mirror import get_mirrorlist_online, get_mirrorlist_offline
 from fastpac.search import find_package, download_repos
@@ -96,7 +94,7 @@ class PathFileType:
         return path
 
 
-def parse_args(args: List[str]) -> argparse.Namespace:
+def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
     p.add_argument('--config-file', type=PathFileType(),
                    default='/etc/fastpac.conf.py', help='Path to config file')
@@ -122,10 +120,19 @@ def main(args: argparse.Namespace):
     with ThreadPoolExecutorStackTraced(max_workers=config['workers']) as pool:
         futures = []
         for package_name in package_names:
-            futures.append(pool.submit(download_package, package_name, dest, config['databases'], databases_lock, config['mirrorpicker'], mirrorpicker_lock))
+            futures.append(pool.submit(
+                download_package,
+                package_name,
+                dest,
+                config['databases'],
+                databases_lock,
+                config['mirrorpicker'],
+                mirrorpicker_lock
+                ))
+
         for future in futures:
             future.result()
 
 
 if __name__ == "__main__":
-    main(parse_args(sys.argv[1:]))
+    main(parse_args())

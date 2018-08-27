@@ -10,4 +10,3 @@ def download_file_to_path(url, path):
         for part in request.iter_content(chunk_size=1024):
             if part:
                 f.write(part)
-

@@ -3,9 +3,9 @@ import tarfile
 class Repo:
     def __init__(self, data):
         self.data = {}
-        if type(data) is dict:
+        if isinstance(data, dict):
             self.data = data
-        elif type(data) is tarfile.TarFile:
+        elif isinstance(data, tarfile.TarFile):
             for member in data.getmembers():
                 if member.name.endswith("/desc"):
                     raw_desc = data.extractfile(member).read()
