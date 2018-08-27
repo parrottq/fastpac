@@ -11,7 +11,7 @@ from fastpac.mirror import get_mirrorlist_online, get_mirrorlist_offline
 from fastpac.search import find_package, repos_provider
 from fastpac.util import HybridGenerator, ThreadPoolExecutorStackTraced
 from fastpac.download import assemble_package_url, download_file_to_path
-from fastpac.picker import LeastUsedPicker
+from fastpac.picker import *
 
 
 log = logging.getLogger('fastpac.__main__')
