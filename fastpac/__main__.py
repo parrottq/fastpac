@@ -135,4 +135,7 @@ def main(args: argparse.Namespace):
 
 
 if __name__ == "__main__":
-    main(parse_args())
+    try:
+        main(parse_args())
+    except KeyboardInterrupt:
+        log.info("Stopped")
