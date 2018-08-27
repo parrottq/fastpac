@@ -3,10 +3,10 @@ All functionality relating to searching package databases
 """
 from io import BytesIO
 import logging
-from tarfile import open as tar_open
+from tarfile import TarError, open as tar_open
 from typing import Iterable, Optional, NamedTuple
 
-from requests import get
+from requests import get, RequestException
 
 from fastpac.database import Repo
 
@@ -47,8 +47,8 @@ def download_tar(url):
     # TODO: Centralized downloading
     try:
         return tar_open(fileobj=BytesIO(get(url).content))
-    except (tarfile.TarError, requests.RequestException) as e:
-        log.info('Got error while downloading %r', exc_info=e)
+    except (TarError, RequestException) as e:
+        log.info('Got error while downloading %r', url, exc_info=e)
 
 
 class RepoMeta(NamedTuple):
