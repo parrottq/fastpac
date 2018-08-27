@@ -72,7 +72,7 @@ class RepoMeta(NamedTuple):
     mirror: str
     db: Repo
 
-def repos_provider(mirrorlist, repo_names):
+def repos_provider_obselete(mirrorlist, repo_names):
     """
     Downloading now repos
     """

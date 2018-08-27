@@ -8,7 +8,7 @@ import sys
 import traceback
 
 from fastpac.mirror import get_mirrorlist_online, get_mirrorlist_offline
-from fastpac.search import find_package, repos_provider, download_repos
+from fastpac.search import find_package, download_repos
 from fastpac.util import HybridGenerator, ThreadPoolExecutorStackTraced
 from fastpac.download import assemble_package_url, download_file_to_path
 from fastpac.picker import *
@@ -21,7 +21,7 @@ def download_package(name, dest, databases, databases_lock, mirrorpicker, mirror
     # find_package returns the filename for the current version and
     # its repo of residence. Both are needed to make the download url
     with databases_lock:
-        package_info = find_package(name, databases, limit=8) # 8 because 4 different repo type * 2
+        package_info = find_package(name, databases)
 
     # find_package will return None if no package is in the database
     if not package_info:
@@ -66,7 +66,6 @@ def load_config(path: Path) -> Dict[str, Any]:
     init_globals = {k: v for (k, v) in globals().items()
                     if k.endswith('Picker') or k.endswith('Generator')
                     or k.startswith('get_mirrorlist')
-                    or k.endswith('provider')
                     or k == "download_repos"}
     return runpy.run_path(path, init_globals=init_globals)
 

@@ -43,50 +43,6 @@ def test_search_find_package():
 
     assert search.find_package("package_does_not_exist", data) == None
 
-def test_search_find_package_limit():
-    data = [
-            RepoMeta(**{"name": "core1", "mirror": "https://a", "db": Repo({"package1": {"filename": "package1.tar", "csize": "2"}})}),
-            RepoMeta(**{"name": "core2", "mirror": "https://b", "db": Repo({"package2": {"filename": "package2.tar", "csize": "1"}})}),
-            RepoMeta(**{"name": "core3", "mirror": "https://c", "db": Repo({"package3": {"filename": "package3.tar", "csize": "1"}})})
-            ]
-
-    assert search.find_package("package2", data, limit=1) == None
-    assert search.find_package("package3", data, limit=2) == None
-
-def test_search_repos_provider(monkeypatch):
-    repo_gen = search.repos_provider(["https://a", "https://b"], ["core", "extra"])
-
-    input_var = ""
-    output_var = b""
-    def mockdownload(url):
-        assert url == input_var
-        return output_var
-
-    monkeypatch.setattr(search, "download_tar", mockdownload)
-
-    input_var = "https://a/core/os/x86_64/core.db.tar.gz"
-    output_var = {"package1": {"filename": "package1.tar"}}
-    info_var = RepoMeta(**{"name": "core", "mirror": "https://a", "db": Repo({"package1": {"filename": "package1.tar"}})})
-    new = next(repo_gen)
-    assert new == info_var
-
-    input_var = "https://a/extra/os/x86_64/extra.db.tar.gz"
-    output_var = {"package2": {"filename": "package2.tar"}}
-    info_var = RepoMeta(**{"name": "extra", "mirror": "https://a", "db": Repo({"package2": {"filename": "package2.tar"}})})
-    new = next(repo_gen)
-    assert new == info_var
-
-    input_var = "https://b/core/os/x86_64/core.db.tar.gz"
-    output_var = {"package3": {"filename": "package3.tar"}}
-    info_var = RepoMeta(**{"name": "core", "mirror": "https://b", "db": Repo({"package3": {"filename": "package3.tar"}})})
-    new = next(repo_gen)
-    assert new == info_var
-
-    input_var = "https://b/extra/os/x86_64/extra.db.tar.gz"
-    output_var = {"package4": {"filename": "package4.tar"}}
-    info_var = RepoMeta(**{"name": "extra", "mirror": "https://b", "db": Repo({"package4": {"filename": "package4.tar"}})})
-    new = next(repo_gen)
-    assert new == info_var
 
 # Return types
 # Repos
