@@ -21,7 +21,7 @@ class Repo:
         return self.data[key]
 
     def __eq__(self, other):
-        return True if self.data == other.data else False
+        return self.data == other.data
 
 
 def package_desc2dict(desc):

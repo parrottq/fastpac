@@ -9,6 +9,24 @@ from fastpac.database import Repo
 def no_requests(monkeypatch):
     monkeypatch.delattr("requests.sessions.Session.request")
 
+
+def test_search_fetch_repo(monkeypatch):
+    input_var = ""
+    output_var = b""
+    def mockdownload(url):
+        assert url == input_var
+        return output_var
+
+    monkeypatch.setattr(search, "download_tar", mockdownload)
+
+    input_var = "https://test/core/os/x86_64/core.db.tar.gz"
+    output_var = {"package": {"filename": "package1.tar"}}
+    result = search.fetch_repo("core", ["https://test"])
+    assert result.name == "core"
+    assert result.mirror == "https://test"
+    assert result.db == Repo(output_var)
+
+
 # TODO: Test this with a generator
 def test_search_find_package():
     # Repos data

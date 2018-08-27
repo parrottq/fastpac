@@ -6,6 +6,16 @@ from concurrent.futures import ThreadPoolExecutor
 import sys
 import traceback
 
+
+def aslist(function):
+    """
+    A function that returns a generator with return a lists if this decorator is applied
+    """
+    def lister(*args, **kargs):
+        return list(function(*args, **kargs))
+    return lister
+
+
 class HybridGenerator:
     """
     Self expanding list

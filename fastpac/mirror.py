@@ -1,4 +1,5 @@
 from requests import get as get_response
+from fastpac.util import aslist
 import json
 
 def get(url):
@@ -29,14 +30,6 @@ def get_mirrorlist_online(url, https=True, sort=None):
         else:
             yield mirror["url"]
 
-def aslist(function):
-    """
-    A function that returns a generator with return a lists if this decorator is applied
-    """
-    # TODO: Move to utils module
-    def lister(*args, **kargs):
-        return list(function(*args, **kargs))
-    return lister
 
 @aslist
 def parse_mirrorlist(raw_text):
