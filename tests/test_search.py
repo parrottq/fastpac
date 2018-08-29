@@ -36,10 +36,10 @@ def test_search_find_package():
         ]
 
     assert search.find_package("package", data) == PackageInfo(**{
-            "mirror": "https://a", "repo": "core", "filename": "package.tar", "name": "package", "size": "2"})
+            "mirror": "https://a", "repo": "core", "filename": "package.tar", "name": "package", "size": "2", "sha256" :""})
 
     assert search.find_package("package2", data) == PackageInfo(**{
-            "mirror": "https://b", "repo": "core2", "filename": "package2.tar", "name": "package2", "size": "1"})
+            "mirror": "https://b", "repo": "core2", "filename": "package2.tar", "name": "package2", "size": "1", "sha256" :""})
 
     assert search.find_package("package_does_not_exist", data) == None
 

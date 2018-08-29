@@ -4,6 +4,8 @@ from threading import Lock
 from typing import Any, Dict, List, Set
 from pathlib import Path
 import runpy
+from hashlib import sha256
+from os import remove as remove_file
 
 from fastpac.mirror import get_mirrorlist_online, get_mirrorlist_offline
 from fastpac.search import find_package, download_repos
@@ -26,11 +28,35 @@ def download_package(name, dest, databases, databases_lock, mirrorpicker, mirror
         log.warning('%r could not be found', name)
         return
 
-    # If it is already present we skip this package
     filename = package_info.filename
-    if (dest / filename).is_file():
-        log.debug('%r already exists', filename)
-        return
+    # If it is already present we skip this package
+    file_path = dest / filename
+    if file_path.is_file():
+        log.info('%r already exists', filename)
+        log.debug("file_path %r", file_path)
+
+        # Calculate current file's hash
+
+        # If the sha256 hash is not provided skip
+        if not package_info.sha256:
+            return
+
+        # Hash from repo
+        remote_hash = package_info.sha256
+
+        with open(file_path, mode='rb') as package_file:
+            current_hash = sha256(package_file.read()).hexdigest()
+
+        # Hashs match skip package
+        log.debug("Remote hash %r", remote_hash)
+        log.debug("Local hash  %r", current_hash)
+        if remote_hash == current_hash:
+            log.info("%r has matching hashs", name)
+            return
+
+        log.warning("Local package file %r does not have matching hashs", name)
+        remove_file(file_path)
+        log.info("Removed local copy of package %r", file_path)
 
     # Try downloading a package from a mirror until one works
     while True:

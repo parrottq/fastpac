@@ -66,6 +66,7 @@ class PackageInfo(NamedTuple):
     name: str
     filename: str
     size: int
+    sha256: str
 
 
 def find_package(name: str, repos: Iterable[RepoMeta], limit: int = -1) -> Optional[PackageInfo]:
@@ -87,7 +88,8 @@ def find_package(name: str, repos: Iterable[RepoMeta], limit: int = -1) -> Optio
                 repo=repo.name,
                 name=name,
                 filename=repo.db[name]["filename"],
-                size=repo.db[name]["csize"]
+                size=repo.db[name]["csize"],
+                sha256=repo.db[name]["sha256sum"] if "sha256sum" in repo.db[name] else ""
             )
             return info
         limit -= 1
