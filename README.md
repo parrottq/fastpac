@@ -22,6 +22,13 @@ $ fastpac
 
 ## Hacking
 
-Contributions are welcome! All new code should be tested using our pytest
-testing system, which you can run with the shell command `py.test` in
-the root of the repository.
+Contributions are welcome! We use pytest for testing all new code added to
+fastpac, which you can use to test the codebase by running `py.test`.
+
+To set up a development environment, run the following commands:
+
+```
+$ pip install --user -e .[dev]  # install all the fastpac deps including dev to user profile
+$ py.test  # run test suite to make sure everything is ok
+```
+
