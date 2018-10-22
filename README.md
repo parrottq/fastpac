@@ -5,7 +5,7 @@ Parallel pacman package downloader
 Create requisite directories and set up config file:
 
 ```
-# python setup.py install
+# python3 setup.py install
 # useradd -r fastpac
 # mkdir -p /var/cache/fastpac/{pkg,pkglists}
 # chown -R fastpac:fastpac /var/cache/fastpac
